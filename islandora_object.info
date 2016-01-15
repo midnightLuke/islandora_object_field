@@ -1,0 +1,3 @@
+name = Islandora Object Field
+description = Adds an "Islandora Object" field type and widgets for referencing Islandora objects in Drupal fields.
+core = 7.x

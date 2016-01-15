@@ -1,0 +1,192 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function islandora_object_menu() {
+  $items['islandora_object/autocomplete'] = array(
+    'title' => 'Islandora Object Autocomplete',
+    'page callback' => 'islandora_object_autocomplete',
+    'access arguments' => array('view fedora repository objects'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_field_info().
+ */
+function islandora_object_field_info() {
+  return array(
+    'islandora_object' => array(
+      'label' => t('Islandora Object'),
+      'description' => t('References an object stored in a Fedora Repository using Islandora.'),
+      'settings' => array(),
+      'instance_settings' => array(),
+      'default_widget' => 'islandora_object_autocomplete_widget',
+      'default_formatter' => 'islandora_object_label_formatter',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_schema().
+ */
+function islandora_object_field_schema($field) {
+  $columns = array(
+    'pid' => array(
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => true,
+    ),
+  );
+  return array(
+    'columns' => $columns,
+    'indexes' => array(
+      'pid' => array('pid'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_access().
+ */
+function islandora_object_field_access($op, $field, $entity_type, $entity, $account) {
+  // TODO: Implement Islandora access checks on referenced object.
+  return TRUE;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function islandora_object_field_widget_info() {
+  return array(
+    'islandora_object_autocomplete' => array(
+      'label' => t('Autocomplete'),
+      'field types' => array('islandora_object'),
+      'settings' => array(),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function islandora_object_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $element += array(
+    '#type' => 'fieldset',
+    'pid' => array(
+      '#type' => 'textfield',
+      '#autocomplete_path' => 'islandora_object/autocomplete',
+      '#default_value' => isset($items[$delta]['pid']) ? $items[$delta]['pid'] : '',
+    ),
+  );
+  return $element;
+}
+
+/**
+ * Validation callback.
+ */
+function islandora_object_element_validate($form, &$form_state) {
+  // TODO: Some validation.
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function islandora_object_field_is_empty($item, $field) {
+  if (empty($item['pid']) && (string) $item['pid'] !== '0') {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Autocomplete callback.
+ */
+function islandora_object_autocomplete($search) {
+  $tuque = islandora_get_tuque_connection();
+  $sparql_query = <<<EOQ
+SELECT ?pid ?label
+WHERE {
+  ?pid <fedora-model:label> ?label .
+  FILTER(regex(?label, '$search') || regex(str(?pid), '$search' ))
+}
+EOQ;
+  $results = $tuque->repository->ri->sparqlQuery($sparql_query);
+  $return = array();
+  foreach ($results as $objects) {
+    $return[$objects['pid']['value']] = t('@label (@pid)', array(
+      '@label' => $objects['label']['value'],
+      '@pid' => $objects['pid']['value'],
+    ));
+  }
+  drupal_json_output($return);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function islandora_object_field_formatter_info() {
+  return array(
+    'islandora_object_label_formatter' => array(
+      'label' => t('Object label'),
+      'field types' => array('islandora_object'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function islandora_object_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'islandora_object_label_formatter':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array(
+          '#theme' => 'islandora_object_label',
+          '#object' => $item['object'],
+          '#pid' => $item['pid'],
+          '#label' => $item['object']->label,
+        );
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function islandora_object_theme($existing, $type, $theme, $path) {
+  return array(
+    'islandora_object_label' => array(
+      'template' => 'templates/islandora-object-label',
+      'variables' => array('label' => NULL, 'pid' => NULL, 'object' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_load().
+ */
+function islandora_object_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age) {
+  $connection = islandora_get_tuque_connection();
+  foreach ($entities as $id => $entity) {
+    foreach ($items[$id] as $delta => $item) {
+      try {
+        $items[$id][$delta]['object'] = $connection->repository->getObject($items[$id][$delta]['pid']);
+      } catch (RepositoryException $e) {
+        unset($items[$id][$delta]);
+      }
+    }
+  }
+}
