@@ -4,9 +4,10 @@
  * Implements hook_menu().
  */
 function islandora_object_menu() {
-  $items['islandora_object/autocomplete'] = array(
+  $items['islandora_object/autocomplete/%'] = array(
     'title' => 'Islandora Object Autocomplete',
     'page callback' => 'islandora_object_autocomplete',
+    'page arguments' => array(2),
     'access arguments' => array('view fedora repository objects'),
     'type' => MENU_CALLBACK,
   );
@@ -21,7 +22,7 @@ function islandora_object_field_info() {
     'islandora_object' => array(
       'label' => t('Islandora Object'),
       'description' => t('References an object stored in a Fedora Repository using Islandora.'),
-      'settings' => array(),
+      'settings' => array('content_models' => array()),
       'instance_settings' => array(),
       'default_widget' => 'islandora_object_autocomplete_widget',
       'default_formatter' => 'islandora_object_label_formatter',
@@ -46,6 +47,27 @@ function islandora_object_field_schema($field) {
       'pid' => array('pid'),
     ),
   );
+}
+
+/**
+ * Implements hook_field_settings_form().
+ */
+function islandora_object_field_settings_form($field, $instance, $has_data) {
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  $form = array(
+    'content_models' => array(
+      '#type' => 'checkboxes',
+      '#title' => t('Enabled content models'),
+      '#description' => t('The content models allowed to be referenced with this widget'),
+      '#options' => array(),
+      '#disabled' => $has_data,
+      '#default_value' => $field['settings']['content_models'],
+    ),
+  );
+  foreach (islandora_get_content_models() as $cmodel) {
+    $form['content_models']['#options'][$cmodel['pid']] = $cmodel['label'];
+  }
+  return $form;
 }
 
 /**
@@ -81,10 +103,11 @@ function islandora_object_field_widget_form(&$form, &$form_state, $field, $insta
     '#type' => 'fieldset',
     'pid' => array(
       '#type' => 'textfield',
-      '#autocomplete_path' => 'islandora_object/autocomplete',
+      '#autocomplete_path' => 'islandora_object/autocomplete/' . $field['field_name'],
       '#default_value' => isset($items[$delta]['pid']) ? $items[$delta]['pid'] : '',
     ),
   );
+  d($field);
   return $element;
 }
 
@@ -108,16 +131,33 @@ function islandora_object_field_is_empty($item, $field) {
 /**
  * Autocomplete callback.
  */
-function islandora_object_autocomplete($search) {
-  $tuque = islandora_get_tuque_connection();
-  $sparql_query = <<<EOQ
-SELECT ?pid ?label
-WHERE {
-  ?pid <fedora-model:label> ?label .
-  FILTER(regex(?label, '$search') || regex(str(?pid), '$search' ))
-}
+function islandora_object_autocomplete($field, $search) {
+  // Get field settings and available cmodels.
+  $field = field_info_field($field);
+  $cmodels = array_filter($field['settings']['content_models']);
+  $repository = islandora_get_tuque_connection()->repository;
+
+  // Build UNION statement.
+  $where_strings = array();
+  foreach ($cmodels as $cmodel) {
+    $where_strings[] = <<<EOQ
+  {
+    ?pid <fedora-model:label> ?label ;
+    <fedora-model:hasModel> <info:fedora/$cmodel> .
+    FILTER(regex(?label, '$search') || regex(str(?pid), '$search' ))
+  }
 EOQ;
-  $results = $tuque->repository->ri->sparqlQuery($sparql_query);
+  }
+
+  // Sub in generic query if no cmodels defined.
+  if (count($where_strings)) {
+    $where_string = implode(' UNION ', $where_strings);
+  } else {
+    $where_string = "?pid <fedora-model:label> ?label ;\nFILTER(regex(?label, '$search') || regex(str(?pid), '$search' ))";
+  }
+
+  // SPARQL query.
+  $results = $repository->ri->sparqlQuery("SELECT ?pid ?label WHERE { $where_string }");
   $return = array();
   foreach ($results as $objects) {
     $return[$objects['pid']['value']] = t('@label (@pid)', array(
@@ -125,6 +165,8 @@ EOQ;
       '@pid' => $objects['pid']['value'],
     ));
   }
+
+  // Return the results.
   drupal_json_output($return);
 }
 
