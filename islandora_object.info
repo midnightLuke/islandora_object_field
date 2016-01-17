@@ -3,3 +3,4 @@ description = Adds an "Islandora Object" field type and widgets for referencing 
 core = 7.x
 
 dependencies[] = islandora
+version = 7.x-dev
