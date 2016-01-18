@@ -107,7 +107,6 @@ function islandora_object_field_field_widget_form(&$form, &$form_state, $field, 
       '#default_value' => isset($items[$delta]['pid']) ? $items[$delta]['pid'] : '',
     ),
   );
-  d($field);
   return $element;
 }
 
