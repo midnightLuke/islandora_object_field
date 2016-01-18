@@ -3,10 +3,10 @@
 /**
  * Implements hook_menu().
  */
-function islandora_object_menu() {
-  $items['islandora_object/autocomplete/%'] = array(
+function islandora_object_field_menu() {
+  $items['islandora_object_field/autocomplete/%'] = array(
     'title' => 'Islandora Object Autocomplete',
-    'page callback' => 'islandora_object_autocomplete',
+    'page callback' => 'islandora_object_field_autocomplete',
     'page arguments' => array(2),
     'access arguments' => array('view fedora repository objects'),
     'type' => MENU_CALLBACK,
@@ -17,15 +17,15 @@ function islandora_object_menu() {
 /**
  * Implements hook_field_info().
  */
-function islandora_object_field_info() {
+function islandora_object_field_field_info() {
   return array(
-    'islandora_object' => array(
+    'islandora_object_field' => array(
       'label' => t('Islandora Object'),
       'description' => t('References an object stored in a Fedora Repository using Islandora.'),
       'settings' => array('content_models' => array()),
       'instance_settings' => array(),
-      'default_widget' => 'islandora_object_autocomplete_widget',
-      'default_formatter' => 'islandora_object_label_formatter',
+      'default_widget' => 'islandora_object_field_autocomplete_widget',
+      'default_formatter' => 'islandora_object_field_label_formatter',
     ),
   );
 }
@@ -33,7 +33,7 @@ function islandora_object_field_info() {
 /**
  * Implements hook_field_schema().
  */
-function islandora_object_field_schema($field) {
+function islandora_object_field_field_schema($field) {
   $columns = array(
     'pid' => array(
       'type' => 'varchar',
@@ -52,7 +52,7 @@ function islandora_object_field_schema($field) {
 /**
  * Implements hook_field_settings_form().
  */
-function islandora_object_field_settings_form($field, $instance, $has_data) {
+function islandora_object_field_field_settings_form($field, $instance, $has_data) {
   module_load_include('inc', 'islandora', 'includes/utilities');
   $form = array(
     'content_models' => array(
@@ -73,7 +73,7 @@ function islandora_object_field_settings_form($field, $instance, $has_data) {
 /**
  * Implements hook_field_access().
  */
-function islandora_object_field_access($op, $field, $entity_type, $entity, $account) {
+function islandora_object_field_field_access($op, $field, $entity_type, $entity, $account) {
   // TODO: Implement Islandora access checks on referenced object.
   return TRUE;
 }
@@ -81,11 +81,11 @@ function islandora_object_field_access($op, $field, $entity_type, $entity, $acco
 /**
  * Implements hook_field_widget_info().
  */
-function islandora_object_field_widget_info() {
+function islandora_object_field_field_widget_info() {
   return array(
-    'islandora_object_autocomplete' => array(
+    'islandora_object_field_autocomplete' => array(
       'label' => t('Autocomplete'),
-      'field types' => array('islandora_object'),
+      'field types' => array('islandora_object_field'),
       'settings' => array(),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
@@ -98,12 +98,12 @@ function islandora_object_field_widget_info() {
 /**
  * Implements hook_field_widget_form().
  */
-function islandora_object_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function islandora_object_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $element += array(
     '#type' => 'fieldset',
     'pid' => array(
       '#type' => 'textfield',
-      '#autocomplete_path' => 'islandora_object/autocomplete/' . $field['field_name'],
+      '#autocomplete_path' => 'islandora_object_field/autocomplete/' . $field['field_name'],
       '#default_value' => isset($items[$delta]['pid']) ? $items[$delta]['pid'] : '',
     ),
   );
@@ -114,14 +114,14 @@ function islandora_object_field_widget_form(&$form, &$form_state, $field, $insta
 /**
  * Validation callback.
  */
-function islandora_object_element_validate($form, &$form_state) {
+function islandora_object_field_element_validate($form, &$form_state) {
   // TODO: Some validation.
 }
 
 /**
  * Implements hook_field_is_empty().
  */
-function islandora_object_field_is_empty($item, $field) {
+function islandora_object_field_field_is_empty($item, $field) {
   if (empty($item['pid']) && (string) $item['pid'] !== '0') {
     return TRUE;
   }
@@ -131,7 +131,7 @@ function islandora_object_field_is_empty($item, $field) {
 /**
  * Autocomplete callback.
  */
-function islandora_object_autocomplete($field, $search) {
+function islandora_object_field_autocomplete($field, $search) {
   // Get field settings and available cmodels.
   $field = field_info_field($field);
   $cmodels = array_filter($field['settings']['content_models']);
@@ -173,11 +173,11 @@ EOQ;
 /**
  * Implements hook_field_formatter_info().
  */
-function islandora_object_field_formatter_info() {
+function islandora_object_field_field_formatter_info() {
   return array(
-    'islandora_object_label_formatter' => array(
+    'islandora_object_field_label_formatter' => array(
       'label' => t('Object label'),
-      'field types' => array('islandora_object'),
+      'field types' => array('islandora_object_field'),
     ),
   );
 }
@@ -185,15 +185,15 @@ function islandora_object_field_formatter_info() {
 /**
  * Implements hook_field_formatter_view().
  */
-function islandora_object_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+function islandora_object_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
   $settings = $display['settings'];
 
   switch ($display['type']) {
-    case 'islandora_object_label_formatter':
+    case 'islandora_object_field_label_formatter':
       foreach ($items as $delta => $item) {
         $element[$delta] = array(
-          '#theme' => 'islandora_object_label',
+          '#theme' => 'islandora_object_field_label',
           '#object' => $item['object'],
           '#pid' => $item['pid'],
           '#label' => $item['object']->label,
@@ -208,10 +208,10 @@ function islandora_object_field_formatter_view($entity_type, $entity, $field, $i
 /**
  * Implements hook_theme().
  */
-function islandora_object_theme($existing, $type, $theme, $path) {
+function islandora_object_field_theme($existing, $type, $theme, $path) {
   return array(
-    'islandora_object_label' => array(
-      'template' => 'templates/islandora-object-label',
+    'islandora_object_field_label' => array(
+      'template' => 'templates/islandora-object-field-label',
       'variables' => array('label' => NULL, 'pid' => NULL, 'object' => NULL),
     ),
   );
@@ -220,12 +220,12 @@ function islandora_object_theme($existing, $type, $theme, $path) {
 /**
  * Implements hook_field_load().
  */
-function islandora_object_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age) {
-  $connection = islandora_get_tuque_connection();
+function islandora_object_field_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age) {
+  $repository = islandora_get_tuque_connection()->repository;
   foreach ($entities as $id => $entity) {
     foreach ($items[$id] as $delta => $item) {
       try {
-        $items[$id][$delta]['object'] = $connection->repository->getObject($items[$id][$delta]['pid']);
+        $items[$id][$delta]['object'] = $repository->getObject($items[$id][$delta]['pid']);
       } catch (RepositoryException $e) {
         unset($items[$id][$delta]);
       }
