@@ -62,11 +62,13 @@ function islandora_object_field_get($entity, array $options, $name, $entity_type
 
   // Get objects from the repository.
   $return = array();
-  foreach($entity->{$name}[$langcode] as $delta => $value) {
-    $return[$delta] = $repository->getObject($value['pid']);
-  }
-  if ($context['field']['cardinality'] == 1) {
-    return isset($entity->{$name}[$langcode][0]) ? $return[0] : NULL;
+  if (isset($entity->{$name}[$langcode])) {
+    foreach($entity->{$name}[$langcode] as $delta => $value) {
+      $return[$delta] = $repository->getObject($value['pid']);
+    }
+    if ($context['field']['cardinality'] == 1) {
+      return isset($entity->{$name}[$langcode][0]) ? $return[0] : NULL;
+    }
   }
   return isset($entity->{$name}[$langcode]) ? $return : array();
 }
