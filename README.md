@@ -8,7 +8,7 @@ state, bugs and errors are likely.
 ## Introduction
 
 Provides a new field type, widget and formatter for "Islandora Object". On the
-developer site integrates with the entity api to provide easier access to the
+developer side integrates with the entity api to provide easier access to the
 referenced object when developing.
 
 ## Requirements
