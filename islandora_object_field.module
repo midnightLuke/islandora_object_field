@@ -261,13 +261,17 @@ function islandora_object_field_field_formatter_view($entity_type, $entity, $fie
   switch ($display['type']) {
     case 'islandora_object_field_label_formatter':
       foreach ($items as $delta => $item) {
-        $object = $repository->getObject($item['pid']);
-        $element[$delta] = array(
-          '#theme' => 'islandora_object_field_label',
-          '#object' => $object,
-          '#pid' => $item['pid'],
-          '#label' => $object->label,
-        );
+        try {
+          $object = $repository->getObject($item['pid']);
+          $element[$delta] = array(
+            '#theme' => 'islandora_object_field_label',
+            '#object' => $object,
+            '#pid' => $item['pid'],
+            '#label' => $object->label,
+          );
+        } catch (Exception $e) {
+          // This is likely a permissions issue, continue on.
+        }
       }
       break;
   }
