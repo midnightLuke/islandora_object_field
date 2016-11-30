@@ -4,4 +4,3 @@ core = 7.x
 
 dependencies[] = islandora
 dependencies[] = entity
-version = 7.x-dev
