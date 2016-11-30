@@ -263,7 +263,6 @@ function islandora_object_field_field_formatter_info() {
  */
 function islandora_object_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
-  $settings = $display['settings'];
   $repository = islandora_get_tuque_connection()->repository;
 
   switch ($display['type']) {
