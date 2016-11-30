@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Hooks and helper functions for the islandora_object_field module.
+ */
+
+/**
  * Implements hook_menu().
  */
 function islandora_object_field_menu() {
@@ -63,7 +68,7 @@ function islandora_object_field_get($entity, array $options, $name, $entity_type
   // Get objects from the repository.
   $return = array();
   if (isset($entity->{$name}[$langcode])) {
-    foreach($entity->{$name}[$langcode] as $delta => $value) {
+    foreach ($entity->{$name}[$langcode] as $delta => $value) {
       $return[$delta] = $repository->getObject($value['pid']);
     }
     if ($context['field']['cardinality'] == 1) {
@@ -74,8 +79,9 @@ function islandora_object_field_get($entity, array $options, $name, $entity_type
 }
 
 /**
- * Setter callback for the islandora object field, accepts either a PID or a
- * IslandoraFedoraObject object.
+ * Setter callback for the islandora object field.
+ *
+ * Accepts either a PID or a IslandoraFedoraObject object.
  */
 function islandora_object_field_set($entity, $name, $items, $langcode, $entity_type) {
   $field = field_info_field($name);
@@ -86,7 +92,8 @@ function islandora_object_field_set($entity, $name, $items, $langcode, $entity_t
   foreach ($value as $item) {
     if (is_object($item) && $item instanceof IslandoraFedoraObject) {
       $set[]['pid'] = $item->id;
-    } else if ($item !== null) {
+    }
+    elseif ($item !== NULL) {
       $set[]['pid'] = $item;
     }
   }
@@ -107,7 +114,7 @@ function islandora_object_field_field_schema($field) {
     'pid' => array(
       'type' => 'varchar',
       'length' => 255,
-      'not null' => true,
+      'not null' => TRUE,
     ),
   );
   return array(
@@ -220,7 +227,8 @@ EOQ;
   // Sub in generic query if no cmodels defined.
   if (count($where_strings)) {
     $where_string = implode(' UNION ', $where_strings);
-  } else {
+  }
+  else {
     $where_string = "?pid <fedora-model:label> ?label ;\nFILTER(regex(?label, '$search') || regex(str(?pid), '$search' ))";
   }
 
@@ -269,7 +277,8 @@ function islandora_object_field_field_formatter_view($entity_type, $entity, $fie
             '#pid' => $item['pid'],
             '#label' => $object->label,
           );
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
           // This is likely a permissions issue, continue on.
         }
       }
